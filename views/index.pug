@@ -4,4 +4,7 @@ block content
     h1 Testing test test
     form(action='/upload/submit' method='POST' enctype='multipart/form-data')
       input(type='file' name='file' id='')
+      select(name='codec')
+        option(value='.mkv' selected='') MKV
+        option(value='.mp4') MP4
       button upload 
