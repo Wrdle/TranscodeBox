@@ -1,5 +1,5 @@
 const express = require("express");
-const hbjs = require("handbrake-js");
+const handbrake = require("handbrake-js");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -30,7 +30,7 @@ function generateFileHash(filePath) {
 }
 
 function processFile(fileName, selectedCodec) {
-  return hbjs
+  return handbrake
     .spawn({
       input: generateFilePath(fileName),
       output: generateFilePath(changeFileExtension(fileName, selectedCodec)),
