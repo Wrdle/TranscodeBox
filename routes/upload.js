@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const handbrake = require('handbrake-js')
 
 const allowedExtensions = ["mp4", "m4v", "mkv"];
 
@@ -32,6 +33,20 @@ router.post("/submit", function (req, res) {
         console.log(err);
         res.send("There is error");
       } else {
+        handbrake.spawn({ input: `temp/uploads/${fileName}`, output: 'temp/uploads/conversion.m4v' })
+          .on('error', err => {
+            console.log(err);
+          })
+          .on('progress', progress => {
+            console.log(
+              'Percent complete: %s, ETA: %s',
+              progress.percentComplete,
+              progress.eta
+            )
+          })
+          .on('end', () => {
+            console.log('Conversion complete.');
+          })
         res.send("uploaded successfully");
       }
     });
