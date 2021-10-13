@@ -3,31 +3,11 @@
 const inputFile = document.querySelector("#file");
 const selectedCodec = document.querySelector("#codec");
 const progressBar = document.querySelector("#progress");
+const errorText = document.querySelector("#error");
 
-async function upload(formData) {
-  let config = {
-    //Note that the contenttype should be set to multipart / form data
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-    //Listen for the onuploadprogress event
-    onUploadProgress: (e) => {
-      const { loaded, total } = e;
-      //Using local progress events
-      if (e.lengthComputable) {
-        let progress = (loaded / total) * 100;
-        progressBar.setAttribute("value", progress);
-      }
-    },
-  };
-  const { status, data } = await axios.post("/upload/submit", formData, config);
-  if (status === 200) {
-    console.log("Upload complete.");
-    window.location.href = "/upload/submitted/" + data.uuid;
-  }
-}
+// ============== FUNCTIONS ============== //
 
-//Monitor change events
+// Submit
 function submitUploadForm() {
   //Loading file with formdata
   const formData = new FormData();
@@ -38,3 +18,38 @@ function submitUploadForm() {
   //Upload file
   upload(formData);
 }
+
+async function upload(formData) {
+  axios
+    .post("/upload/submit", formData, config)
+    .then((response) => {
+      if (response.status === 200) {
+        console.log("Upload complete.");
+        window.location.href = "/upload/submitted/" + response.data.uuid;
+      }
+    })
+    .catch((error) => {
+      console.log(error);
+      if (error.response) {
+        errorText.textContent = error.response.data.message;
+      }
+    });
+}
+
+// ============== AXIOS CONFIG ============== //
+
+const config = {
+  //Note that the contenttype should be set to multipart / form data
+  headers: {
+    "Content-Type": "multipart/form-data",
+  },
+  //Listen for the onuploadprogress event
+  onUploadProgress: (e) => {
+    const { loaded, total } = e;
+    //Using local progress events
+    if (e.lengthComputable) {
+      const progress = (loaded / total) * 100;
+      progressBar.setAttribute("value", progress);
+    }
+  },
+};

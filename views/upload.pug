@@ -8,6 +8,7 @@ block content
     option(value='.mp4') MP4
   button(onclick='submitUploadForm()') upload 
   progress#progress(style='visibility:hidden;', value='0', max='100')
+  p#error
   script(src='https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js')
   script(src='/javascripts/upload.js')
 
