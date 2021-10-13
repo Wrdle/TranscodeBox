@@ -1,0 +1,13 @@
+extends layout
+
+block content
+  h1 Upload Video
+  input#file(type='file', name='file')
+  select#codec(name='codec')
+    option(value='.mkv', selected='') MKV
+    option(value='.mp4') MP4
+  button(onclick='submitUploadForm()') upload 
+  progress#progress(style='visibility:hidden;', value='0', max='100')
+  script(src='https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js')
+  script(src='/javascripts/upload.js')
+

@@ -1,16 +1,15 @@
 doctype html
 html
   head
-    title Market Analyser
+    title TranscodeBox
     meta(charset="utf-8")
     meta(name="viewport" content="width=device-width, initial-scale = 1, shrink-to-fit=no")
     //- Import Bootstrap stylesheet, our custom stylesheet and our search functions
     link(rel='stylesheet', href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css", integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm", crossorigin="anonymous")
     link(rel='stylesheet', href='/stylesheets/style.css')
-    script(src='/javascripts/searchFunctions.js')
   body
     //- Stock Bootstrap collapsable navbar (adapted from https://getbootstrap.com/docs/5.1/examples/)
-    nav.navbar.navbar-expand-md.navbar-dark.fixed-top.bg-dark
+    nav.navbar.navbar-expand-md.navbar-dark.bg-dark
         a.navbar-brand(href="/") The Market Analyser
         button.navbar-toggler(type="button", data-toggle="collapse", data-target="#navbarsExampleDefault", aria-controls="navbarsExampleDefault", aria-expanded="false", aria-label="Toggle navigation")
             span.navbar-toggler-icon
@@ -19,20 +18,20 @@ html
                 li.nav-item.active
                     a.nav-link(href="/") Home
                         span.sr-only (current)
-            form.form-inline.my-r.my-lg-0(onsubmit="return false;")
-                input.form-control.mr-sm-2#search(type="text", placeholder="Stock symbol")
-                //- Tie our search function to the navbar's search input
-                button.btn.btn-outline-success.my-2.my-sm-0(type="submit" onclick="navSearch()") Search
+                li.nav-item.active
+                    a.nav-link(href="/browse") Browse
+                        span.sr-only 
+                li.nav-item.active
+                    a.nav-link(href="/upload") Upload
+                        span.sr-only
     //- Insert content from extended pug templates here
-    main(role="main")
+    main.container(role="main")
         block content
     //- Basic footer referencing author and data source.
     footer.container
         hr
         p 
-            | Created by Declan Elkerton and powered by 
-            a(href="https://finnhub.io") finnhub.io
-            |  for CAB432, 2021.
+            | Created by Matt D'Agostino & Declan Elkerton for CAB432
     //- Importing required Bootstrap scripts (sourced from https://getbootstrap.com/docs/5.1/getting-started/introduction/)
     script(src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous")
     script(src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous")

@@ -18,7 +18,17 @@ const changeFileExtension = (fileName, fileExtension) =>
 
 //Render upload video page
 router.get("/", function (req, res) {
-  res.render("index");
+  res.render("upload");
+});
+
+router.get("/submitted/:uuid", function (req, res) {
+  console.log(req.params);
+  const uuid = req.params.uuid;
+  if (uuid) {
+    res.render("submitted", { uuid });
+  } else {
+    res.render("404");
+  }
 });
 
 function generateFileHash(filePath) {
@@ -48,7 +58,11 @@ function processFile(fileName, selectedCodec) {
 }
 
 function storeFileMetaData(uuid, name, hash, originalCodec, newCodec) {
-  // TODO: store in dynamo
+  // TODO: store in dynamo and mark as not complete
+}
+
+function markVideoAsComplete() {
+  // TODO mark video as complete in dynamo db
 }
 
 function uploadToS3(currentFilePath) {
@@ -95,16 +109,17 @@ router.post("/submit", function (req, res) {
         console.log(err);
         res.render("error", { message: "Internal server error." });
       } else {
-        res.send("uploaded successfully");
-        processFile(uuidFileName, codec).on("complete", () => {
-          storeFileMetaData(
-            uuid,
-            "My Video",
-            fileHash,
-            getExtensionName(fileName),
-            codec
-          ); // TODO: Take video name input in pug
+        res.status(200).json({ uuid: uuid });
+        storeFileMetaData(
+          uuid,
+          "My Video",
+          fileHash,
+          getExtensionName(fileName),
+          codec
+        ); // TODO: Take video name input in pug
+        processFile(uuidFileName, codec).on("complete", () => { 
           uploadToS3(uuidFilePath);
+          markVideoAsComplete(uuid);
           // TODO: delete files
         });
       }
