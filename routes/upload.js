@@ -19,8 +19,6 @@ const tempDirectory = "temp/uploads/";
 const generateFilePath = (fileName) => `${tempDirectory}${fileName}`;
 const getExtensionName = (fileName) => "." + fileName.split(".").pop();
 const getFileNameWithoutExtension = (fileName) => fileName.split(".")[0];
-const changeFileExtension = (fileName, fileExtension) =>
-  getFileNameWithoutExtension(fileName) + fileExtension;
 
 // ============== ROUTES ============== //
 
@@ -66,7 +64,7 @@ router.post("/submit", function (req, res) {
 
     const existingUUID = doesFileExist(filePath);
     if (existingUUID) {
-      // delete files
+      deleteFilesAsync([filePath]);
       res.status(200).json({ uuid: existingUUID });
       return;
     }
@@ -79,15 +77,18 @@ router.post("/submit", function (req, res) {
       getExtensionName(fileName),
       outputResolution
     ); // TODO: Take video name input in pug
-    processFile(fileName, uuidFileName, outputResolution).on("end", () => {
-      uploadToS3(uuidFileName, uuidFilePath);
-      markVideoAsComplete(uuid);
-      // TODO: delete files
-    });
+
+    processFile(fileName, uuidFileName, outputResolution)
+      .then(() => uploadToS3(uuidFileName, uuidFilePath))
+      .then(() => markVideoAsComplete())
+      .then(() => deleteFilesAsync([filePath, uuidFilePath]))
+      .catch((err) => {
+        console.log(err);
+      });
   });
 });
 
-// ============== HELPERS ============== //
+// ============== ERROR HANDLERS & VALIDATORS ============== //
 
 function sendError(res, status, message) {
   res.status(status).json({ error: true, message: message });
@@ -133,23 +134,36 @@ function isVideoValid(req, res) {
   return true;
 }
 
+// ============== PROCESSORS & HELPERS ============== //
+
 function processFile(fileName, uuid, resolution) {
-  return handbrake
-    .spawn({
-      input: generateFilePath(fileName),
-      output: generateFilePath(uuid),
-      preset: allowedPresets[resolution],
-    })
-    .on("error", (err) => {
-      console.log(err);
-    })
-    .on("progress", (progress) => {
-      console.log(
-        "Percent complete: %s, ETA: %s",
-        progress.percentComplete,
-        progress.eta
-      );
-    });
+  return new Promise((resolve, reject) => {
+    handbrake
+      .spawn({
+        input: generateFilePath(fileName),
+        output: generateFilePath(uuid),
+        preset: allowedPresets[resolution],
+      })
+      .on("error", (err) => {
+        reject(err);
+      })
+      .on("progress", (progress) => {
+        console.log(
+          "Percent complete: %s, ETA: %s",
+          progress.percentComplete,
+          progress.eta
+        );
+      })
+      .on("end", () => {
+        resolve();
+      });
+  });
+}
+
+function deleteFilesAsync(filepaths) {
+  filepaths.forEach((filepath) => {
+    fs.unlink(filepath, () => console.log("Deleted file: " + filepath));
+  });
 }
 
 function generateFileHash(filePath) {
@@ -178,28 +192,34 @@ function storeFileMetaData(
 }
 
 function markVideoAsComplete() {
-  // TODO mark video as complete in dynamo db
+  return new Promise((resolve, reject) => {
+    // TODO mark video as complete in dynamo db
+    resolve();
+  });
 }
 
 function uploadToS3(uuidFileName, currentFilePath) {
-  fs.readFile(currentFilePath, (err, data) => {
+  return new Promise((resolve, reject) => {
     const bucketName = `transcodebox`;
-    const objectParams = {
-      Bucket: bucketName,
-      Key: `${uuidFileName}`,
-      Body: data,
-    };
-    const uploadPromise = new AWS.S3({ apiVersion: "2009-03-01" })
+
+    fs.readFile(currentFilePath, (err, data) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({
+          Bucket: bucketName,
+          Key: `${uuidFileName}`,
+          Body: data,
+        });
+      }
+    });
+  }).then((objectParams) => {
+    return new AWS.S3({ apiVersion: "2009-03-01" })
       .putObject(objectParams)
-      .promise();
-    uploadPromise
+      .promise()
       .then(() => {
         console.log("successfully uploaded to S3");
-      })
-      .catch((err) => {
-        console.log(err);
       });
-    console.log("Conversion complete.");
   });
 }
 

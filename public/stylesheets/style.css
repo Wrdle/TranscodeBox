@@ -1,2 +1,12 @@
-body {
+.video-header {
+  margin-top: 20px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+.video-header h1 {
+  padding-bottom: 10px;
+}
+.video-header video {
+  width: 100%;
 }

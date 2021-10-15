@@ -7,9 +7,10 @@ router.get("/", function (req, res) {
 });
 
 //Render individual video page
-router.post("/video/:uuid", function (req, res) {
-  const uuid = req.uuid;
-  console.log(uuid);
+router.get("/video/:uuid", function (req, res) {
+  const uuid = req.params.uuid;
+
+  const metadata = fetchMetadata(uuid);
 
   // check if video has completed
   //    if completed == false
@@ -18,7 +19,15 @@ router.post("/video/:uuid", function (req, res) {
   //      get url for S3
   //      render completed
 
-  res.render("index");
+  metadata.s3url =
+    "https://transcodebox.s3.ap-southeast-2.amazonaws.com/" + uuid + ".mp4";
+
+  res.render("video", metadata);
 });
+
+function fetchMetadata(uuid) {
+  // fetch metadata from dynamo
+  return {};
+}
 
 module.exports = router;

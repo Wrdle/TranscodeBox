@@ -1,4 +1,9 @@
 extends layout
 
 block content
-  h1 Home Page
+  div.video-header
+    h1 {VIDEO TITLE}
+    video(controls)
+      source(src=s3url, type='video/mp4')
+      | Your browser does not support the html video tag.
+  div.video-metadata
