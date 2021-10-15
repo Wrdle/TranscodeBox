@@ -3,9 +3,10 @@ extends layout
 block content
   h1 Upload Video
   input#file(type='file', name='file')
-  select#codec(name='codec')
-    option(value='.mkv', selected='') MKV
-    option(value='.mp4') MP4
+  select#resolution(name='resolution')
+    option(value='720p', selected='') 720p
+    option(value='576p') 576p
+    option(value='480p') 480p
   button(onclick='submitUploadForm()') upload 
   progress#progress(style='visibility:hidden;', value='0', max='100')
   p#error

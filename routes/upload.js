@@ -3,10 +3,16 @@ const handbrake = require("handbrake-js");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const fs = require("fs");
+var AWS = require("aws-sdk");
+
 const router = express.Router();
 
 const allowedExtensions = [".mp4", ".m4v", ".mkv"];
-const allowedCodecs = [".mp4", ".mkv"];
+const allowedPresets = {
+  "720p": "Fast 720p30",
+  "576p": "Fast 576p25",
+  "480p": "Fast 480p30",
+};
 
 const tempDirectory = "temp/uploads/";
 
@@ -43,19 +49,22 @@ router.post("/submit", function (req, res) {
 
   const file = req.files.file;
   const fileName = file.name;
+  const filePath = generateFilePath(fileName);
 
   const uuid = uuidv4();
-  const uuidFileName = uuid + getExtensionName(fileName);
+  const uuidFileName = uuid + ".mp4";
   const uuidFilePath = generateFilePath(uuidFileName);
 
-  file.mv(uuidFilePath, (err) => {
+  const outputResolution = req.body.resolution;
+
+  file.mv(filePath, (err) => {
     if (err) {
       console.log(err);
       sendError(res, 500, "Internal Server Error");
       return;
     }
 
-    const existingUUID = doesFileExist(uuidFilePath);
+    const existingUUID = doesFileExist(filePath);
     if (existingUUID) {
       // delete files
       res.status(200).json({ uuid: existingUUID });
@@ -66,12 +75,12 @@ router.post("/submit", function (req, res) {
     storeFileMetaData(
       uuid,
       "My Video",
-      fileHash,
+      file.md5,
       getExtensionName(fileName),
-      codec
+      outputResolution
     ); // TODO: Take video name input in pug
-    processFile(uuidFileName, codec).on("complete", () => {
-      uploadToS3(uuidFilePath);
+    processFile(fileName, uuidFileName, outputResolution).on("end", () => {
+      uploadToS3(uuidFileName, uuidFilePath);
       markVideoAsComplete(uuid);
       // TODO: delete files
     });
@@ -85,11 +94,8 @@ function sendError(res, status, message) {
 }
 
 function isVideoValid(req, res) {
-  console.log("are we here?");
   if (!req.files) {
-    console.log("error thrown");
     sendError(res, 400, "No files were uploaded");
-    console.log("error thrown 2");
     return false;
   }
 
@@ -115,25 +121,24 @@ function isVideoValid(req, res) {
     return false;
   }
 
-  console.log("file type not allowed");
-
-  const codec = req.body.codec;
-  if (!allowedCodecs.includes(codec)) {
+  const resolution = req.body.resolution;
+  if (!Object.keys(allowedPresets).includes(resolution)) {
     sendError(
       res,
       400,
-      "Invalid codec selection. Only .mp4 and .m4v is allowed"
+      "Invalid resolution selection. Only 720p and 576p and 480p is allowed"
     );
     return false;
   }
   return true;
 }
 
-function processFile(fileName, selectedCodec) {
+function processFile(fileName, uuid, resolution) {
   return handbrake
     .spawn({
       input: generateFilePath(fileName),
-      output: generateFilePath(changeFileExtension(fileName, selectedCodec)),
+      output: generateFilePath(uuid),
+      preset: allowedPresets[resolution],
     })
     .on("error", (err) => {
       console.log(err);
@@ -161,7 +166,14 @@ function doesFileExist(filepath) {
   return null;
 }
 
-function storeFileMetaData(uuid, name, hash, originalCodec, newCodec) {
+function storeFileMetaData(
+  uuid,
+  name,
+  hash,
+  originalCodec,
+  originalResolution,
+  finalResolution
+) {
   // TODO: store in dynamo and mark as not complete
 }
 
@@ -169,8 +181,26 @@ function markVideoAsComplete() {
   // TODO mark video as complete in dynamo db
 }
 
-function uploadToS3(currentFilePath) {
-  // TODO: Upload file to S3
+function uploadToS3(uuidFileName, currentFilePath) {
+  fs.readFile(currentFilePath, (err, data) => {
+    const bucketName = `transcodebox`;
+    const objectParams = {
+      Bucket: bucketName,
+      Key: `${uuidFileName}`,
+      Body: data,
+    };
+    const uploadPromise = new AWS.S3({ apiVersion: "2009-03-01" })
+      .putObject(objectParams)
+      .promise();
+    uploadPromise
+      .then(() => {
+        console.log("successfully uploaded to S3");
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+    console.log("Conversion complete.");
+  });
 }
 
 module.exports = router;

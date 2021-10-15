@@ -1,7 +1,7 @@
 // Code adapted from: https://developpaper.com/nodejs-file-upload-monitoring-upload-progress/
 
 const inputFile = document.querySelector("#file");
-const selectedCodec = document.querySelector("#codec");
+const selectedResolution = document.querySelector("#resolution");
 const progressBar = document.querySelector("#progress");
 const errorText = document.querySelector("#error");
 
@@ -12,7 +12,7 @@ function submitUploadForm() {
   //Loading file with formdata
   const formData = new FormData();
   formData.append("file", inputFile.files[0]);
-  formData.append("codec", selectedCodec.value);
+  formData.append("resolution", selectedResolution.value);
   // Make progress bar visible
   progressBar.style.visibility = "visible";
   //Upload file
