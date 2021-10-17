@@ -1,4 +1,40 @@
 extends layout
 
 block content
-  h1 Browse Videos
+  .jumbotron
+    .text-center
+      h2.display-4 Uploaded Videos
+  .container
+    table.table
+      thead
+        tr
+          th(scope='col') Title
+          th(scope='col') Resolution
+          th(scope='col') Date
+          th(scope='col')
+      tbody
+        tr
+          td.title-col
+            | Lorem Ipsum Dolor Sit Amet
+          td.res-col 720p
+          td.date-col 01/01/2021
+          td.button-col
+            .text-center
+              a.btn.btn-info.view-button(href='/', role='button') View
+        tr
+          td.title-col
+            | Lorem Ipsum Dolor Sit Amet
+          td.res-col 720p
+          td.date-col 01/01/2021
+          td.button-col
+            .text-center
+              a.btn.btn-info.view-button(href='/', role='button') View
+        tr
+          td.title-col
+            | Lorem Ipsum Dolor Sit Amet
+          td.res-col 720p
+          td.date-col 01/01/2021
+          td.button-col
+            .text-center
+              a.btn.btn-info.view-button(href='/', role='button') View
+
