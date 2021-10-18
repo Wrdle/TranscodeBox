@@ -5,7 +5,7 @@ const inputFile = document.querySelector("#file");
 const selectedResolution = document.querySelector("#resolution");
 const progressBarContainer = document.querySelector("#progressBar")
 const progressBar = document.querySelector("#progress");
-const errorText = document.querySelector("#error");
+const statusText = document.querySelector("#status");
 
 // ============== FUNCTIONS ============== //
 
@@ -23,23 +23,30 @@ function submitUploadForm() {
 }
 
 async function upload(formData) {
-  errorText.style.visibility = "hidden";
-  errorText.textContent = "";
+  statusText.style.visibility = "hidden";
+  statusText.textContent = "";
   axios
     .post("/upload/submit", formData, config)
     .then((response) => {
+      //If upload successful, display success message and link to individual video page
       if (response.status === 200) {
+        const uuid = response.data.uuid;
         console.log("Upload complete.");
-        window.location.href = "/upload/submitted/" + response.data.uuid;
+        progressBarContainer.style.visibility = "hidden";
+        progressBar.style.width = "0%";
+        statusText.setAttribute("class", "alert alert-success");
+        statusText.style.visibility = "visible";
+        statusText.innerHTML = "Success! Your video has been uploaded and is now processing. When completed your video will appear <a href='../browse/video/" + uuid + "'>here</a>.";
       }
     })
+    //Else, display error message
     .catch((error) => {
-      //progressBar.style.visibility = "hidden";
       progressBarContainer.style.visibility = "hidden";
       progressBar.style.width = "0%";
       if (error.response) {
-        errorText.style.visibility = "visible";
-        errorText.textContent = error.response.data.message;
+        statusText.setAttribute("class", "alert alert-danger")
+        statusText.style.visibility = "visible";
+        statusText.textContent = error.response.data.message;
       }
     });
 }

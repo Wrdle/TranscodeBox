@@ -88,8 +88,12 @@ form {
     margin-bottom: 100px;
 }
 
-#error {
+#status {
     visibility: hidden;
+}
+
+#status a {
+    text-decoration: underline;
 }
 
 #progressBar {
