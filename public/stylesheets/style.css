@@ -99,3 +99,12 @@ form {
 #progressBar {
     visibility: hidden;
 }
+
+/* Error page styling */
+.error-badge {
+    margin-left: 50px;
+}
+
+.home-link {
+    text-decoration: underline;
+}

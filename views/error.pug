@@ -1,6 +1,11 @@
 extends layout
 
 block content
-  h1= message
-  h2= error.status
-  pre #{error.stack}
+  //- Display error details and a badge with the HTTP error code
+  .jumbotron
+        .container
+            h2.display-4 #{message}
+              span.badge.badge-danger.stock-change.error-badge #{code}
+            h4.display-6.error-header 
+              | Sorry for the inconvenience. 
+              a.home-link(href="/") Return home

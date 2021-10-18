@@ -33,7 +33,7 @@ router.get("/submitted/:uuid", function (req, res) {
   if (uuid) {
     res.render("submitted", { uuid });
   } else {
-    res.render("404");
+    res.render("error", {code: 404, message: "Error! Page not found."});
   }
 });
 
