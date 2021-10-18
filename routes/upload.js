@@ -10,7 +10,7 @@ const allowedExtensions = ["mp4", "m4v", "mkv"];
 
 //Render upload video page
 router.get("/", function (req, res) {
-  res.render("index");
+  res.render("upload");
 });
 
 //Accept a video file upload and transcoding options
