@@ -3,7 +3,7 @@
 const videoTitle = document.querySelector("#title");
 const inputFile = document.querySelector("#file");
 const selectedResolution = document.querySelector("#resolution");
-const progressBarContainer = document.querySelector("#progressBar")
+const progressBarContainer = document.querySelector("#progressBar");
 const progressBar = document.querySelector("#progress");
 const statusText = document.querySelector("#status");
 
@@ -13,7 +13,7 @@ const statusText = document.querySelector("#status");
 function submitUploadForm() {
   //Loading file with formdata
   const formData = new FormData();
-  formData.append("title", videoTitle);
+  formData.append("title", videoTitle.value);
   formData.append("file", inputFile.files[0]);
   formData.append("resolution", selectedResolution.value);
   // Make progress bar visible
@@ -36,7 +36,10 @@ async function upload(formData) {
         progressBar.style.width = "0%";
         statusText.setAttribute("class", "alert alert-success");
         statusText.style.visibility = "visible";
-        statusText.innerHTML = "Success! Your video has been uploaded and is now processing. When completed your video will appear <a href='../browse/video/" + uuid + "'>here</a>.";
+        statusText.innerHTML =
+          "Success! Your video has been uploaded and is now processing. When completed your video will appear <a href='../browse/video/" +
+          uuid +
+          "'>here</a>.";
       }
     })
     //Else, display error message
@@ -44,7 +47,7 @@ async function upload(formData) {
       progressBarContainer.style.visibility = "hidden";
       progressBar.style.width = "0%";
       if (error.response) {
-        statusText.setAttribute("class", "alert alert-danger")
+        statusText.setAttribute("class", "alert alert-danger");
         statusText.style.visibility = "visible";
         statusText.textContent = error.response.data.message;
       }
@@ -64,7 +67,7 @@ const config = {
     //Using local progress events
     if (e.lengthComputable) {
       const progress = (loaded / total) * 100;
-      progressBar.style.width = `${progress}%`
+      progressBar.style.width = `${progress}%`;
     }
   },
 };

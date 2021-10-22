@@ -4,6 +4,7 @@ const path = require("path");
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 const fileUpload = require("express-fileupload");
+var AWS = require("aws-sdk");
 
 const indexRouter = require("./routes/index");
 const uploadRouter = require("./routes/upload");
@@ -30,6 +31,8 @@ app.use("/", indexRouter);
 app.use("/upload", uploadRouter);
 app.use("/browse", browseRouter);
 
+AWS.config.update({ region: "ap-southeast-2" });
+
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
   next(createError(404, "Error! Page not found."));
@@ -43,7 +46,10 @@ app.use(function (err, req, res, next) {
 
   // render the error page
   res.status(err.status || 500);
-  res.render("error", {code: err.status || 500, message: err.message || "Unknown internal server error."});
+  res.render("error", {
+    code: err.status || 500,
+    message: err.message || "Unknown internal server error.",
+  });
 });
 
 module.exports = app;

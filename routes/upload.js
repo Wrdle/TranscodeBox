@@ -5,6 +5,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 var AWS = require("aws-sdk");
 
+AWS.config.update({ region: "ap-southeast-2" });
+
 const router = express.Router();
 
 const allowedExtensions = [".mp4", ".m4v", ".mkv"];
@@ -18,7 +20,9 @@ const tempDirectory = "temp/uploads/";
 
 const generateFilePath = (fileName) => `${tempDirectory}${fileName}`;
 const getExtensionName = (fileName) => "." + fileName.split(".").pop();
-const getFileNameWithoutExtension = (fileName) => fileName.split(".")[0];
+const getFileNameWithoutExtension = (filename) => fileName.split(".")[0];
+
+const dbDocClient = new AWS.DynamoDB.DocumentClient();
 
 // ============== ROUTES ============== //
 
@@ -33,7 +37,7 @@ router.get("/submitted/:uuid", function (req, res) {
   if (uuid) {
     res.render("submitted", { uuid });
   } else {
-    res.render("error", {code: 404, message: "Error! Page not found."});
+    res.render("error", { code: 404, message: "Error! Page not found." });
   }
 });
 
@@ -54,6 +58,10 @@ router.post("/submit", function (req, res) {
   const uuidFilePath = generateFilePath(uuidFileName);
 
   const outputResolution = req.body.resolution;
+  const title =
+    req.body.title !== undefined
+      ? req.body.title
+      : getFileNameWithoutExtension(fileName);
 
   file.mv(filePath, (err) => {
     if (err) {
@@ -62,29 +70,32 @@ router.post("/submit", function (req, res) {
       return;
     }
 
-    const existingUUID = doesFileExist(filePath);
-    if (existingUUID) {
-      deleteFilesAsync([filePath]);
-      res.status(200).json({ uuid: existingUUID });
-      return;
-    }
+    const fileHash = generateFileHash(filePath);
 
-    res.status(200).json({ uuid: uuid });
-    storeFileMetaData(
-      uuid,
-      "My Video",
-      file.md5,
-      getExtensionName(fileName),
-      outputResolution
-    ); // TODO: Take video name input in pug
+    doesFileExist(fileHash).then((metadata) => {
+      if (metadata) {
+        deleteFilesAsync([filePath]);
+        res.status(200).json({ uuid: metadata.vuuid });
+        return;
+      }
 
-    processFile(fileName, uuidFileName, outputResolution)
-      .then(() => uploadToS3(uuidFileName, uuidFilePath))
-      .then(() => markVideoAsComplete())
-      .then(() => deleteFilesAsync([filePath, uuidFilePath]))
-      .catch((err) => {
-        console.log(err);
-      });
+      res.status(200).json({ uuid: uuid });
+      storeFileMetaData(
+        uuid,
+        title,
+        fileHash,
+        getExtensionName(fileName),
+        outputResolution
+      );
+
+      processFile(fileName, uuidFileName, outputResolution)
+        .then(() => uploadToS3(uuidFileName, uuidFilePath))
+        .then(() => markVideoAsComplete(uuid))
+        .then(() => deleteFilesAsync([filePath, uuidFilePath]))
+        .catch((err) => {
+          console.log(err);
+        });
+    });
   });
 });
 
@@ -168,33 +179,85 @@ function deleteFilesAsync(filepaths) {
 
 function generateFileHash(filePath) {
   const fileBuffer = fs.readFileSync(filePath);
-  const hashSum = crypto.createHash("md5");
+  const hashSum = crypto.createHash("SHA512");
   hashSum.update(fileBuffer);
-
   return hashSum.digest("hex");
 }
 
-function doesFileExist(filepath) {
-  const fileHash = generateFileHash(filepath);
-  // TODO: check dynamodb if file exists and if it does, return the UUID
-  return null;
-}
+function doesFileExist(hash) {
+  var params = {
+    TableName: "transcodebox",
+    IndexName: "transcodebox-filehash-index",
+    KeyConditionExpression: "filehash = :fh",
+    ExpressionAttributeValues: {
+      ":fh": hash,
+    },
+  };
 
-function storeFileMetaData(
-  uuid,
-  name,
-  hash,
-  originalCodec,
-  originalResolution,
-  finalResolution
-) {
-  // TODO: store in dynamo and mark as not complete
-}
-
-function markVideoAsComplete() {
   return new Promise((resolve, reject) => {
-    // TODO mark video as complete in dynamo db
-    resolve();
+    dbDocClient.query(params, function (err, data) {
+      if (err) {
+        console.log("Unable to query. Error:", JSON.stringify(err, null, 2));
+        reject(err);
+      } else {
+        const metadata = data.Items.pop();
+        resolve(metadata !== undefined ? metadata : null);
+      }
+    });
+  });
+}
+
+function storeFileMetaData(uuid, name, hash, originalCodec, finalResolution) {
+  const params = {
+    TableName: "transcodebox",
+    Item: {
+      vuuid: uuid,
+      name: name,
+      filehash: hash,
+      originalCodec: originalCodec,
+      finalResolution: finalResolution,
+      completed: false,
+    },
+  };
+
+  dbDocClient.put(params, (err, data) => {
+    if (err) {
+      console.error(
+        "Unable to add item. Error JSON:",
+        JSON.stringify(err, null, 2)
+      );
+    } else {
+      console.log("Added item:", JSON.stringify(data, null, 2));
+    }
+  });
+}
+
+function markVideoAsComplete(uuid) {
+  return new Promise((resolve, reject) => {
+    var params = {
+      TableName: "transcodebox",
+      Key: {
+        vuuid: uuid,
+      },
+      UpdateExpression: "set completed = :c",
+      ExpressionAttributeValues: {
+        ":c": true,
+      },
+      ReturnValues: "UPDATED_NEW",
+    };
+
+    dbDocClient.update(params, function (err, data) {
+      if (err) {
+        console.error(
+          "Unable to update item. Error JSON:",
+          JSON.stringify(err, null, 2)
+        );
+        reject();
+      } else {
+        console.log("UpdateItem succeeded:", JSON.stringify(data, null, 2));
+        resolve();
+      }
+    });
   });
 }
 
