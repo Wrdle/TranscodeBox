@@ -100,6 +100,11 @@ form {
     visibility: hidden;
 }
 
+#upload-warn {
+    max-width: 500px;
+    margin: 25px auto 0;
+}
+
 /* Error page styling */
 .error-badge {
     margin-left: 50px;

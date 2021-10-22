@@ -11,9 +11,14 @@ block content
         p.d-inline
           span.font-weight-bold Created: 
           | #{new Date(date).toLocaleDateString()}
-      a.btn.btn-info.download-button(href=url, role='button', download) Download
+      if completed
+        a.btn.btn-info.download-button(href=url, role='button', download) Download
   .container.text-center
-    video.video(controls)
-      source(src=url, type='video/mp4')
-      | Your browser does not support the video tag.
+    if completed
+      video.video(controls)
+        source(src=url, type='video/mp4')
+        | Your browser does not support the video tag.
+    else
+      #upload-warn.alert.alert-warning(role="alert")
+        | This video is still processing and will be available shortly.
 
