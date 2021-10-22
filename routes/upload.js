@@ -234,7 +234,7 @@ function storeFileMetaData(uuid, name, hash, originalCodec, finalResolution) {
 
 function markVideoAsComplete(uuid) {
   return new Promise((resolve, reject) => {
-    var params = {
+    const params = {
       TableName: "transcodebox",
       Key: {
         vuuid: uuid,
