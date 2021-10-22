@@ -29,15 +29,24 @@ async function upload(formData) {
     .post("/upload/submit", formData, config)
     .then((response) => {
       //If upload successful, display success message and link to individual video page
-      if (response.status === 200) {
+      if (response.status === 200 && !response.data.exists) {
         const uuid = response.data.uuid;
-        console.log("Upload complete.");
         progressBarContainer.style.visibility = "hidden";
         progressBar.style.width = "0%";
         statusText.setAttribute("class", "alert alert-success");
         statusText.style.visibility = "visible";
         statusText.innerHTML =
           "Success! Your video has been uploaded and is now processing. When completed your video will appear <a href='../browse/video/" +
+          uuid +
+          "'>here</a>.";
+      } else {
+        const uuid = response.data.uuid;
+        progressBarContainer.style.visibility = "hidden";
+        progressBar.style.width = "0%";
+        statusText.setAttribute("class", "alert alert-primary");
+        statusText.style.visibility = "visible";
+        statusText.innerHTML =
+          "It looks like that video has already been uploaded and transcoded! You can view and download it <a href='../browse/video/" +
           uuid +
           "'>here</a>.";
       }

@@ -10,7 +10,7 @@ block content
           | #{finalResolution}
         p.d-inline
           span.font-weight-bold Created: 
-          | 01/01/2021
+          | #{new Date(date).toLocaleDateString()}
       a.btn.btn-info.download-button(href=url, role='button', download) Download
   .container.text-center
     video.video(controls)

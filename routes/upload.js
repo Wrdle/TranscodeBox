@@ -75,11 +75,11 @@ router.post("/submit", function (req, res) {
     doesFileExist(fileHash).then((metadata) => {
       if (metadata) {
         deleteFilesAsync([filePath]);
-        res.status(200).json({ uuid: metadata.vuuid });
+        res.status(200).json({ uuid: metadata.vuuid, exists: true });
         return;
       }
 
-      res.status(200).json({ uuid: uuid });
+      res.status(200).json({ uuid: uuid, exists: false });
       storeFileMetaData(
         uuid,
         title,
@@ -217,6 +217,7 @@ function storeFileMetaData(uuid, name, hash, originalCodec, finalResolution) {
       originalCodec: originalCodec,
       finalResolution: finalResolution,
       completed: false,
+      date: new Date().toISOString(),
     },
   };
 
