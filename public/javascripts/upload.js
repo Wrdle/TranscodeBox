@@ -46,7 +46,7 @@ async function upload(formData) {
         statusText.setAttribute("class", "alert alert-primary");
         statusText.style.visibility = "visible";
         statusText.innerHTML =
-          "It looks like that video has already been uploaded and transcoded! You can view and download it <a href='../browse/video/" +
+          "It looks like that video has already been uploaded and transcoded to your selected resolution! You can view and download it <a href='../browse/video/" +
           uuid +
           "'>here</a>.";
       }
