@@ -31,16 +31,6 @@ router.get("/", function (req, res) {
   res.render("upload");
 });
 
-router.get("/submitted/:uuid", function (req, res) {
-  console.log(req.params);
-  const uuid = req.params.uuid;
-  if (uuid) {
-    res.render("submitted", { uuid });
-  } else {
-    res.render("error", { code: 404, message: "Error! Page not found." });
-  }
-});
-
 //Accept a video file upload and transcoding options
 router.post("/submit", function (req, res) {
   console.log("Video submitted");
