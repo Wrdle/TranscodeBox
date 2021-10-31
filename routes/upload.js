@@ -63,7 +63,8 @@ router.post("/submit", function (req, res) {
     const fileHash = generateFileHash(filePath);
 
     doesFileExist(fileHash).then((metadata) => {
-      if (metadata && metadata.finalResolution === outputResolution) {
+      if (metadata && metadata.finalResolution === outputResolution &&
+        title !== "Load Test") {
         deleteFilesAsync([filePath]);
         res.status(200).json({ uuid: metadata.vuuid, exists: true });
         return;
