@@ -23,6 +23,7 @@ const getExtensionName = (fileName) => "." + fileName.split(".").pop();
 const getFileNameWithoutExtension = (filename) => fileName.split(".")[0];
 
 const dbDocClient = new AWS.DynamoDB.DocumentClient();
+const autoscaling = new AWS.AutoScaling({ apiVersion: "2011-01-01" });
 
 // ============== ROUTES ============== //
 
@@ -78,10 +79,13 @@ router.post("/submit", function (req, res) {
         outputResolution
       );
 
+      scaleOutQueue();
+
       processFile(fileName, uuidFileName, outputResolution)
         .then(() => uploadToS3(uuidFileName, uuidFilePath))
         .then(() => markVideoAsComplete(uuid))
         .then(() => deleteFilesAsync([filePath, uuidFilePath]))
+        .then(() => scaleInQueue())
         .catch((err) => {
           console.log(err);
         });
@@ -275,6 +279,217 @@ function uploadToS3(uuidFileName, currentFilePath) {
         console.log("successfully uploaded to S3");
       });
   });
+}
+
+function scaleOutQueue() {
+  //Update processing queue and check if scaling out is required
+    let queueSize = 0;
+    fetchQueue()
+        .then((currentLength) => {
+            queueSize = currentLength + 1;
+            increaseQueue(currentLength);
+        })
+        .then(() => desiredCapacity())
+        .then((capacity) => {
+            if (
+                capacity.DesiredCapacity <= queueSize &&
+                capacity.DesiredCapacity !== capacity.MaxSize
+            ) {
+                increaseCapacity(capacity.DesiredCapacity);
+            }
+        })
+        .catch((err) => {
+            console.error(err);
+        });
+}
+
+function scaleInQueue() {
+    //Update processing queue and check if scaling in is required
+    let queueSize = 0;
+    fetchQueue()
+        .then((currentLength) => {
+            console.log(currentLength);
+            if (currentLength > 0) {
+                queueSize = currentLength - 1;
+                decreaseQueue(currentLength);
+            }
+        })
+        .then(() => desiredCapacity())
+        .then((capacity) => {
+            if (
+                capacity.DesiredCapacity >= queueSize + 2 &&
+                capacity.DesiredCapacity !== capacity.MinSize
+            ) {
+                decreaseCapacity(capacity.DesiredCapacity);
+            } else {
+            }
+        })
+        .catch((err) => {
+            console.error(err);
+        });
+}
+
+function fetchQueue() {
+    // Fetch processing queue length from dynamo
+    const params = {
+        TableName: "transcodebox-queue",
+        KeyConditionExpression: "queue_id = :qId",
+        ExpressionAttributeValues: {
+            ":qId": "0"
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        dbDocClient.query(params, (err, data) => {
+            if (err) {
+                console.error(
+                    "Unable to read data. Error JSON:",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to read data.");
+            } else if (data.Items.length === 0) {
+                console.error(
+                    "Video metadata not found. Error JSON:",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Video metadata not found.");
+            } else {
+                resolve(data.Items[0].queue_length);
+            }
+        });
+    });
+}
+
+function decreaseQueue(currentQueue) {
+    // Decrease processing queue length
+    const params = {
+        TableName: "transcodebox-queue",
+        Key: {
+            queue_id: "0"
+        },
+        UpdateExpression: "set queue_length = :c",
+        ExpressionAttributeValues: {
+            ":c": currentQueue - 1
+        },
+        ReturnValues: "UPDATED_NEW"
+    };
+
+    return new Promise((resolve, reject) => {
+        dbDocClient.update(params, (err, data) => {
+            if (err) {
+                console.error(
+                    "Unable to read data. Error JSON:",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to update");
+            } else {
+                resolve(data);
+            }
+        });
+    });
+}
+
+function increaseQueue(currentQueue) {
+    // Increase processing queue length
+    const params = {
+        TableName: "transcodebox-queue",
+        Key: {
+            queue_id: "0"
+        },
+        UpdateExpression: "set queue_length = :c",
+        ExpressionAttributeValues: {
+            ":c": currentQueue + 1
+        },
+        ReturnValues: "UPDATED_NEW"
+    };
+
+    return new Promise((resolve, reject) => {
+        dbDocClient.update(params, (err, data) => {
+            if (err) {
+                console.error(
+                    "Unable to read data. Error JSON:",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to update");
+            } else {
+                resolve(data);
+            }
+        });
+    });
+}
+
+function desiredCapacity() {
+    // Fetch current ASG desired capacity
+    const params = {
+        AutoScalingGroupNames: ["n10470140-TranscodeBox-dev"]
+    };
+    return new Promise((resolve, reject) => {
+        autoscaling.describeAutoScalingGroups(params, function (err, data) {
+            if (err) {
+                console.error(
+                    "Unable to read capcity",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to read data.");
+            } else if (data.AutoScalingGroups.length === 0) {
+                console.error(
+                    "ASG not found. Error JSON:",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to read data.");
+            } else {
+                resolve({
+                    MinSize: data.AutoScalingGroups[0].MinSize,
+                    MaxSize: data.AutoScalingGroups[0].MaxSize,
+                    DesiredCapacity: data.AutoScalingGroups[0].DesiredCapacity
+                });
+            }
+        });
+    });
+}
+
+function decreaseCapacity(currentCapacity) {
+    // Decrease ASG desired capacity by one
+    const params = {
+        AutoScalingGroupName: "n10470140-TranscodeBox-dev",
+        DesiredCapacity: currentCapacity - 1,
+        HonorCooldown: false
+    };
+    return new Promise((resolve, reject) => {
+        autoscaling.setDesiredCapacity(params, function (err, data) {
+            if (err) {
+                console.error(
+                    "Unable to update capcity",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to update capacity");
+            } else {
+                resolve();
+            }
+        });
+    });
+}
+
+function increaseCapacity(currentCapacity) {
+    // Increase ASG desirec capacity by one
+    const params = {
+        AutoScalingGroupName: "n10470140-TranscodeBox-dev",
+        DesiredCapacity: currentCapacity + 1,
+        HonorCooldown: false
+    };
+    return new Promise((resolve, reject) => {
+        autoscaling.setDesiredCapacity(params, function (err, data) {
+            if (err) {
+                console.error(
+                    "Unable to update capcity",
+                    JSON.stringify(err, null, 2)
+                );
+                reject("Unable to update capacity");
+            } else {
+                resolve();
+            }
+        });
+    });
 }
 
 module.exports = router;
