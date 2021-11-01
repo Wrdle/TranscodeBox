@@ -2,6 +2,7 @@ extends layout
 
 block content
   .jumbotron
+    //- Display general site info and a call to action
     .container
       h2.display-4 Welcome to TranscodeBox
       p
@@ -13,6 +14,7 @@ block content
       .text-center
         a.btn.btn-success.get-started.text-center(href='/upload', role='button') Get Started
   .container
+    //- Display more detailed application documentation
     h3 Usage guide
     p
       | TranscodeBox is made up of two main components, video encoding and video hosting. When you submit a video for encoding, it is automatically uploaded to a cloud storage service so that you can view it within your browser, or download a copy to store yourself.

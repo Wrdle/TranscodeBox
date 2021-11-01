@@ -3,8 +3,8 @@ const handbrake = require("handbrake-js");
 const { v4: uuidv4 } = require("uuid");
 const crypto = require("crypto");
 const fs = require("fs");
-var AWS = require("aws-sdk");
 
+const AWS = require("aws-sdk");
 AWS.config.update({ region: "ap-southeast-2" });
 
 const router = express.Router();
@@ -18,6 +18,7 @@ const allowedPresets = {
 
 const tempDirectory = "temp/uploads/";
 
+// Frequent Utility Functions
 const generateFilePath = (fileName) => `${tempDirectory}${fileName}`;
 const getExtensionName = (fileName) => "." + fileName.split(".").pop();
 const getFileNameWithoutExtension = (filename) => fileName.split(".")[0];
@@ -31,13 +32,11 @@ router.get("/", function (req, res) {
   res.render("upload");
 });
 
-//Accept a video file upload and transcoding options
+//Accept a video file upload and queue for transcoding
 router.post("/submit", function (req, res) {
-  console.log("Video submitted");
   if (!isVideoValid(req, res)) {
     return;
   }
-  console.log("Video valid");
 
   const file = req.files.file;
   const fileName = file.name;
@@ -53,6 +52,7 @@ router.post("/submit", function (req, res) {
       ? req.body.title
       : getFileNameWithoutExtension(fileName);
 
+  //Move file to temp directory
   file.mv(filePath, (err) => {
     if (err) {
       console.log(err);
@@ -62,6 +62,7 @@ router.post("/submit", function (req, res) {
 
     const fileHash = generateFileHash(filePath);
 
+    //Check if content has previously been uploaded
     doesFileExist(fileHash).then((metadata) => {
       if (metadata && metadata.finalResolution === outputResolution &&
         title !== "Load Test") {
@@ -70,6 +71,7 @@ router.post("/submit", function (req, res) {
         return;
       }
 
+      //Send success response and store metadata in DynamoDB
       res.status(200).json({ uuid: uuid, exists: false });
       storeFileMetaData(
         uuid,
@@ -79,6 +81,7 @@ router.post("/submit", function (req, res) {
         outputResolution
       );
 
+      //Encoding process
       processFile(fileName, uuidFileName, outputResolution)
         .then(() => uploadToS3(uuidFileName, uuidFilePath))
         .then(() => markVideoAsComplete(uuid))
@@ -97,12 +100,11 @@ function sendError(res, status, message) {
 }
 
 function isVideoValid(req, res) {
+  //Check all of the usual details, file type, size etc.
   if (!req.files) {
     sendError(res, 400, "No files were uploaded");
     return false;
   }
-
-  console.log("file uploaded");
 
   const fileName = req.files.file.name;
   const extensionName = getExtensionName(fileName);
@@ -112,9 +114,6 @@ function isVideoValid(req, res) {
     return false;
   }
 
-  console.log("file small enough");
-
-  console.log(extensionName);
   if (!allowedExtensions.includes(extensionName)) {
     sendError(
       res,
@@ -138,6 +137,7 @@ function isVideoValid(req, res) {
 
 // ============== PROCESSORS & HELPERS ============== //
 
+//Handbrake-js process handler
 function processFile(fileName, uuid, resolution) {
   return new Promise((resolve, reject) => {
     handbrake
@@ -162,6 +162,7 @@ function processFile(fileName, uuid, resolution) {
   });
 }
 
+//Remove temporary files
 function deleteFilesAsync(filepaths) {
   filepaths.forEach((filepath) => {
     fs.unlink(filepath, () => console.log("Deleted file: " + filepath));
@@ -175,6 +176,7 @@ function generateFileHash(filePath) {
   return hashSum.digest("hex");
 }
 
+//Query DynamoDB to check if a particular hash is already stored
 function doesFileExist(hash) {
   var params = {
     TableName: "transcodebox",
@@ -198,6 +200,7 @@ function doesFileExist(hash) {
   });
 }
 
+//Store a video's metadata in DynamoDB
 function storeFileMetaData(uuid, name, hash, originalCodec, finalResolution) {
   const params = {
     TableName: "transcodebox",
@@ -224,6 +227,7 @@ function storeFileMetaData(uuid, name, hash, originalCodec, finalResolution) {
   });
 }
 
+//Mark a DynamoDB video record as processed
 function markVideoAsComplete(uuid) {
   return new Promise((resolve, reject) => {
     const params = {
@@ -253,6 +257,7 @@ function markVideoAsComplete(uuid) {
   });
 }
 
+//Upload a completed encoding to S3
 function uploadToS3(uuidFileName, currentFilePath) {
   return new Promise((resolve, reject) => {
     const bucketName = `transcodebox`;
@@ -273,7 +278,7 @@ function uploadToS3(uuidFileName, currentFilePath) {
       .putObject(objectParams)
       .promise()
       .then(() => {
-        console.log("successfully uploaded to S3");
+        console.log("Successfully uploaded to S3");
       });
   });
 }

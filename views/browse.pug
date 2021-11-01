@@ -5,9 +5,11 @@ block content
     .text-center
       h2.display-4 Uploaded Videos
   .container
+    //- If no videos are currently stored, display a warning
     if videos.length === 0
       #upload-warn.alert.alert-warning.text-center(role="alert")
         | No videos currently stored. Try uploading one now!
+    //- Else, display a table of all stored videos
     else
       table.table
         thead

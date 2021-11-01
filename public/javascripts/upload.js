@@ -22,6 +22,7 @@ function submitUploadForm() {
   upload(formData);
 }
 
+// Post data
 async function upload(formData) {
   statusText.style.visibility = "hidden";
   statusText.textContent = "";
@@ -40,6 +41,7 @@ async function upload(formData) {
           uuid +
           "'>here</a>.";
       } else {
+        //Else if content already exists, display info message and link to individual video page
         const uuid = response.data.uuid;
         progressBarContainer.style.visibility = "hidden";
         progressBar.style.width = "0%";

@@ -3,6 +3,7 @@ extends layout
 block content
   .jumbotron
     .text-center
+      //- Display video metadata
       h2.display-4 #{name}
       div
         p.d-inline.res
@@ -11,13 +12,16 @@ block content
         p.d-inline
           span.font-weight-bold Created: 
           | #{new Date(date).toLocaleDateString()}
+      //- If video is marked as completed, display download link
       if completed
         a.btn.btn-info.download-button(href=url, role='button', download) Download
   .container.text-center
+    //- If video is marked as completed, display the embedded video player
     if completed
       video.video(controls)
         source(src=url, type='video/mp4')
         | Your browser does not support the video tag.
+    //- Else, display a warning that it is still processing
     else
       #upload-warn.alert.alert-warning(role="alert")
         | This video is still processing and will be available shortly.

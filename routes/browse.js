@@ -6,7 +6,7 @@ AWS.config.update({ region: "ap-southeast-2" });
 const dbDocClient = new AWS.DynamoDB.DocumentClient();
 
 
-//Render list of videos page
+//Render list of all uploaded videos
 router.get("/", function (req, res) {
   fetchAllMetadata()
     .then(data => {
@@ -17,7 +17,7 @@ router.get("/", function (req, res) {
     })
 });
 
-//Render individual video page
+//Render individual video
 router.get("/video/:uuid", function (req, res) {
   const uuid = req.params.uuid;
   fetchSingleMetadata(uuid)
@@ -30,11 +30,10 @@ router.get("/video/:uuid", function (req, res) {
 });
 
 function fetchAllMetadata() {
+  // Fetch metadata of all videos from Dynamo
   let fetchedData = {
     videos: []
   }
-
-  // Fetch metadata of all videos from Dynamo
   const params = {
     TableName : "transcodebox"
   };
@@ -62,14 +61,13 @@ function fetchAllMetadata() {
 }
 
 function fetchSingleMetadata(uuid) {
+  // Fetch individual video metadata from Dynamo
   const s3url =
     "https://transcodebox.s3.ap-southeast-2.amazonaws.com/" + uuid + ".mp4";
   let metadata = { 
     error: true,
     url: s3url
   }
-
-  // Fetch individual video metadata from Dynamo
   const params = {
     TableName : "transcodebox",
     KeyConditionExpression: "vuuid = :vidId",

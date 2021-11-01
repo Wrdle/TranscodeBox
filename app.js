@@ -12,7 +12,7 @@ const browseRouter = require("./routes/browse");
 
 const app = express();
 
-// view engine setup
+// Set up Pug view engine
 app.set("views", path.join(__dirname, "views"));
 app.set("view engine", "pug");
 
@@ -21,6 +21,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
+// Set up file upload handling and enforce 50MB limit
 app.use(
   fileUpload({
     limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
@@ -33,18 +34,17 @@ app.use("/browse", browseRouter);
 
 AWS.config.update({ region: "ap-southeast-2" });
 
-// catch 404 and forward to error handler
+// Catch 404 page not found instances
 app.use(function (req, res, next) {
   next(createError(404, "Error! Page not found."));
 });
 
-// error handler
+// Handle errors from the http-errors function
 app.use(function (err, req, res, next) {
-  // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};
 
-  // render the error page
+  // Render the error page
   res.status(err.status || 500);
   res.render("error", {
     code: err.status || 500,
